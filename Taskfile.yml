@@ -1,0 +1,79 @@
+# https://taskfile.dev
+version: '3'
+
+silent: true
+
+vars:
+  GO_MODULE: github.com/zaytcevcom/golang-ninja
+  GO_FILES:
+    sh: find . -type f -name '*.go' -not -path "./vendor/*" -not -path "*.gen.go" | tr "\n" " "
+
+  GOLANGCI_LINT_VERSION: v1.56.2
+  GOLANGCI_LINT_CACHE:
+    sh: |
+      if [ "$(uname)" = "Darwin" ]; then
+        echo "$HOME/Library/Caches"
+      else
+        echo "$HOME/.cache"
+      fi
+
+tasks:
+  default:
+    cmds:
+      - task: tidy
+      - task: fmt
+      - task: lint
+      - task: tests
+      - task: build
+
+  tidy:
+    - echo "- Tidy"
+    - go mod tidy
+    - task: vendor
+
+  vendor:
+    - echo "- Vendor"
+    - go mod vendor
+
+  fmt:
+    cmds:
+      - echo "- Format"
+      - docker run --rm -v "$PWD:/app" -w /app dev-tools gofumpt -w {{.GO_FILES}}
+      - |
+          docker run --rm -v "$PWD:/app" -w /app dev-tools gci write \
+            --section standard \
+            --section default \
+            --section "Prefix({{.GO_MODULE}})" \
+            --custom-order \
+            --skip-generated \
+            {{.GO_FILES}}
+
+  lint:
+    cmds:
+      - echo "- Lint"
+      - mkdir -p {{.GOLANGCI_LINT_CACHE}}
+      - task: lint:cmd
+        vars: {CLI_ARGS: "run -v --fix --timeout=5m ./..."}
+
+  lint:cmd:
+    cmds:
+      - docker run --rm -v "$(pwd):/app" -w /app -v "{{.GOLANGCI_LINT_CACHE}}:/root/.cache" dev-tools golangci-lint {{.CLI_ARGS}}
+
+  tests:
+    cmds:
+      - echo "- Tests"
+      - go test -race ./...
+
+  build:
+    cmds:
+      - echo "- Build"
+      - go build ./cmd/chat-service
+
+  dev-tools:build:
+    cmds:
+      - echo "- Building dev-tools image"
+      - docker build -t dev-tools -f ./tools/Dockerfile .
+
+  generate:
+    - echo "Run go generate..."
+    - go generate ./...
