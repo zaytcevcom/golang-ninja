@@ -20,11 +20,16 @@ vars:
 tasks:
   default:
     cmds:
+      - task: info
       - task: tidy
       - task: fmt
       - task: lint
       - task: tests
       - task: build
+
+  info:
+    - echo "- Info"
+    - docker run --rm -v "$PWD:/app" -w /app dev-tools go version
 
   tidy:
     - echo "- Tidy"
@@ -53,7 +58,7 @@ tasks:
       - echo "- Lint"
       - mkdir -p {{.GOLANGCI_LINT_CACHE}}
       - task: lint:cmd
-        vars: {CLI_ARGS: "run -v --fix --timeout=5m ./..."}
+        vars: {CLI_ARGS: "run --fix --timeout=5m ./..."}
 
   lint:cmd:
     cmds:
@@ -62,7 +67,7 @@ tasks:
   tests:
     cmds:
       - echo "- Tests"
-      - go test -race ./...
+      - docker run --rm -v "$PWD:/app" -w /app dev-tools go test -race ./...
 
   build:
     cmds:
