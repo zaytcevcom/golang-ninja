@@ -17,6 +17,12 @@ vars:
         echo "$HOME/.cache"
       fi
 
+  DOCKER_COMPOSE_PATHS:
+    - ./deploy/local/docker-compose.yml
+    - ./deploy/local/docker-compose.sentry.yml
+
+  COMPOSE_PROJECT_NAME: ninja
+
 tasks:
   default:
     cmds:
@@ -82,3 +88,45 @@ tasks:
   generate:
     - echo "Run go generate..."
     - docker run --rm -v "$PWD:/app" -w /app dev-tools go generate ./...
+
+  deps:
+    cmds:
+      - echo "- Starting dependencies"
+      - docker compose -p {{.COMPOSE_PROJECT_NAME}} {{range .DOCKER_COMPOSE_PATHS}} -f {{.}} {{end}} up -d
+
+  deps:cmd:
+    cmds:
+      - echo "- Executing docker compose command"
+      - docker compose -p {{.COMPOSE_PROJECT_NAME}} {{range .DOCKER_COMPOSE_PATHS}} -f {{.}} {{end}} {{.CLI_ARGS}}
+
+  deps:status:
+    cmds:
+      - echo "- Docker compose status"
+      - docker compose -p {{.COMPOSE_PROJECT_NAME}} {{range .DOCKER_COMPOSE_PATHS}} -f {{.}} {{end}} ps
+
+  deps:logs:
+    cmds:
+      - echo "- Docker compose logs"
+      - docker compose -p {{.COMPOSE_PROJECT_NAME}} {{range .DOCKER_COMPOSE_PATHS}} -f {{.}} {{end}} logs --follow {{.CLI_ARGS}}
+
+  deps:stop:
+    cmds:
+      - echo "- Stopping docker compose services"
+      - docker compose -p {{.COMPOSE_PROJECT_NAME}} {{range .DOCKER_COMPOSE_PATHS}} -f {{.}} {{end}} stop
+
+  deps:reset-psql:
+    cmds:
+      - task: deps:reset
+        vars:
+          SERVICE: postgres
+
+  deps:reset:
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} rm -fsv {{.SERVICE}}"
+      - "{{.DOCKER_COMPOSE_CMD}} up -d {{.SERVICE}}"
+
+# COMPOSE_PROFILES=sentry task deps
+# task deps:cmd -- exec sentry sentry upgrade
+# task deps:cmd -- restart sentry
+
+# go run ./cmd/chat-service -config configs/config.toml

@@ -1,7 +1,5 @@
 FROM golang:1.21
 
-LABEL maintainer="you@example.com"
-
 RUN apt-get update && \
     apt-get install -y curl unzip && \
     apt-get clean

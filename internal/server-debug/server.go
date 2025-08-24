@@ -63,6 +63,9 @@ func New(opts Options) (*Server, error) {
 	index.addPage("/debug/pprof/", "Go std profiler")
 	index.addPage("/debug/pprof/profile?seconds=30", "Take half-min profiler")
 
+	e.GET("/debug/error", s.sendDebugSentryEvent)
+	index.addPage("/debug/error", "Debug Sentry error event")
+
 	e.GET("/", index.handler)
 	return s, nil
 }
@@ -131,4 +134,12 @@ func (s *Server) setLogLevel(eCtx echo.Context) error {
 	zap.ReplaceGlobals(logger)
 
 	return eCtx.NoContent(http.StatusOK)
+}
+
+func (s *Server) sendDebugSentryEvent(eCtx echo.Context) error {
+	msg := "Test event"
+
+	s.lg.Warn(msg)
+
+	return eCtx.String(http.StatusOK, msg)
 }
