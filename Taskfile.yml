@@ -23,6 +23,14 @@ vars:
 
   COMPOSE_PROJECT_NAME: ninja
 
+  TYPES: |
+    ChatID
+    MessageID
+    ProblemID
+    UserID
+  TYPES_PKG: types
+  TYPES_DST: ./internal/types/types.gen.go
+
 tasks:
   default:
     cmds:
@@ -88,6 +96,17 @@ tasks:
   generate:
     - echo "Run go generate..."
     - docker run --rm -v "$PWD:/app" -w /app dev-tools go generate ./...
+    - task: gen:types
+
+  gen:types:
+    vars:
+      TYPES_CSV:
+        sh: |
+          printf "%s\n" "{{.TYPES}}" | awk 'NF {gsub(/^[ \t]+|[ \t]+$/, "", $0); if (s) printf ","; printf $0; s=1}'
+    cmds:
+      - echo "Generate types..."
+      - echo "pkg={{.TYPES_PKG}} types={{.TYPES_CSV}} out={{.TYPES_DST}}"
+      - docker run --rm -v "$PWD:/app" -w /app dev-tools go run ./cmd/gen-types "{{.TYPES_PKG}}" "{{.TYPES_CSV}}" "{{.TYPES_DST}}"
 
   deps:
     cmds:
