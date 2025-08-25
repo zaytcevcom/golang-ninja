@@ -6,7 +6,7 @@ silent: true
 vars:
   GO_MODULE: github.com/zaytcevcom/golang-ninja
   GO_FILES:
-    sh: find . -type f -name '*.go' -not -path "./vendor/*" -not -path "*.gen.go" | tr "\n" " "
+    sh: find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./internal/store/*" -not -path "*.gen.go" | tr "\n" " "
 
   GOLANGCI_LINT_VERSION: v1.56.2
   GOLANGCI_LINT_CACHE:
@@ -30,6 +30,8 @@ vars:
     UserID
   TYPES_PKG: types
   TYPES_DST: ./internal/types/types.gen.go
+
+  ENT_SCHEMA: ./internal/store/schema
 
 tasks:
   default:
@@ -97,6 +99,7 @@ tasks:
     - echo "Run go generate..."
     - docker run --rm -v "$PWD:/app" -w /app dev-tools go generate ./...
     - task: gen:types
+    - task: ent:gen
 
   gen:types:
     vars:
@@ -107,6 +110,17 @@ tasks:
       - echo "Generate types..."
       - echo "pkg={{.TYPES_PKG}} types={{.TYPES_CSV}} out={{.TYPES_DST}}"
       - docker run --rm -v "$PWD:/app" -w /app dev-tools go run ./cmd/gen-types "{{.TYPES_PKG}}" "{{.TYPES_CSV}}" "{{.TYPES_DST}}"
+
+  ent:new:
+    cmds:
+      - mkdir -p {{.ENT_SCHEMA}}
+      - docker run --rm -v "$PWD:/app" -w /app dev-tools ent new --target "{{.ENT_SCHEMA}}" {{.CLI_ARGS}}
+      - task: tidy
+
+  ent:gen:
+    cmds:
+      - docker run --rm -v "$PWD:/app" -w /app dev-tools ent generate "{{.ENT_SCHEMA}}"
+      - task: tidy
 
   deps:
     cmds:
