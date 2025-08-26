@@ -1,0 +1,46 @@
+x-sentry-env: &sentry-env
+  SENTRY_SECRET_KEY: "066e114de024a27aa82489cb262101a458eb49c99e669052248fe1d927d11541"
+  SENTRY_REDIS_HOST: redis
+  SENTRY_POSTGRES_HOST: postgres
+  SENTRY_POSTGRES_PORT: 5432
+  SENTRY_DB_NAME: sentry
+  SENTRY_DB_USER: sentry
+  SENTRY_DB_PASSWORD: sentry
+
+services:
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    profiles: [sentry]
+
+  sentry:
+    image: getsentry/sentry:latest
+    depends_on:
+      - redis
+      - postgres
+    ports:
+      - "9000:9000"
+    environment:
+      <<: *sentry-env
+    restart: unless-stopped
+    profiles: [sentry]
+
+  worker:
+    image: getsentry/sentry:latest
+    depends_on:
+      - sentry
+    command: "run worker"
+    environment:
+      <<: *sentry-env
+    restart: unless-stopped
+    profiles: [sentry]
+
+  cron:
+    image: getsentry/sentry:latest
+    depends_on:
+      - sentry
+    command: "run cron"
+    environment:
+      <<: *sentry-env
+    restart: unless-stopped
+    profiles: [sentry]
