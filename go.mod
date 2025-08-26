@@ -8,9 +8,11 @@ require (
 	github.com/TheZeroSlave/zapsentry v1.22.1
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-playground/validator/v10 v10.25.0
+	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/kazhuravlev/options-gen v0.54.0
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/stretchr/testify v1.9.0

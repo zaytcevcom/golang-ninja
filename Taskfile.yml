@@ -32,6 +32,7 @@ vars:
   TYPES_DST: ./internal/types/types.gen.go
 
   ENT_SCHEMA: ./internal/store/schema
+  KEYCLOAK_SERVICE: keycloak
 
 tasks:
   default:
@@ -158,8 +159,29 @@ tasks:
       - "{{.DOCKER_COMPOSE_CMD}} rm -fsv {{.SERVICE}}"
       - "{{.DOCKER_COMPOSE_CMD}} up -d {{.SERVICE}}"
 
+  tests:integration:
+    env:
+      TEST_LOG_LEVEL: info
+      TEST_KEYCLOAK_REALM: Bank
+      TEST_KEYCLOAK_CLIENT_ID: integration-testing
+      TEST_KEYCLOAK_CLIENT_SECRET: RPwTSuMftVaUG8598XairLZcLaZsbh8V
+      TEST_KEYCLOAK_TEST_USER: integration-testing
+      TEST_KEYCLOAK_TEST_PASSWORD: integration-testing
+    cmds:
+      - echo "- Integration tests"
+      - go test -tags integration -count 1 -race ./...
+
+  kc:export:
+    cmds:
+      - echo "Dump Keycloak Bank realm..."
+      - mkdir -p ./deploy/local
+      - docker compose -p {{.COMPOSE_PROJECT_NAME}} {{range .DOCKER_COMPOSE_PATHS}} -f {{.}} {{end}} exec -T {{.KEYCLOAK_SERVICE}} /opt/keycloak/bin/kc.sh export --realm Bank --file /tmp/realm.json --users realm_file
+      - docker compose -p {{.COMPOSE_PROJECT_NAME}} {{range .DOCKER_COMPOSE_PATHS}} -f {{.}} {{end}} cp {{.KEYCLOAK_SERVICE}}:/tmp/realm.json ./deploy/local/bank-realm.json
+      - echo "Exported in ./deploy/local/bank-realm.json"
+
 # COMPOSE_PROFILES=sentry task deps
 # task deps:cmd -- exec sentry sentry upgrade
 # task deps:cmd -- restart sentry
 
 # go run ./cmd/chat-service -config configs/config.toml
+# cd ./cmd/ui-client && go run main.go
